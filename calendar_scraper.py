@@ -12,19 +12,31 @@ EVENTS_URL = "https://events.reed.edu/calendar"
 BLOTTER_URL = 'https://www.reed.edu/community_safety/blotters/the-blotter.html'
 
 def get_page_source(url):
+    """
+    Retrieves the page source of the given URL.
+
+    Args:
+        url (str): The URL of the page to retrieve.
+
+    Returns:
+        str: The page source as a string.
+    """
     response = requests.get(url, timeout=15)
     source = response.text
-    return source
+    return BeautifulSoup(source, features='html.parser')
 
 
 def fetch_description(url):
-    html = get_page_source(url)
-    soup = BeautifulSoup(html, features="html.parser")
-    return soup.find(class_="em-about_description").p.text.strip()
+    soup = get_page_source(url)
+    try:
+        description = soup.find(class_="em-about_description").get_text().strip() 
+        return description
+    except AttributeError as e:
+    #    print(soup.find(class_="em-about_description").p.prettify())
+       raise AttributeError(f"page '{url}' has no description") from e
 
 
-def get_relevant_event_cards(html: str, time_span_days):
-    soup = BeautifulSoup(html, features="html.parser")
+def get_relevant_event_cards(soup, time_span_days):
     events = soup.find(id="event_results")
 
     cutoff_date = date.today() + timedelta(days=time_span_days)
@@ -46,14 +58,18 @@ def get_relevant_event_cards(html: str, time_span_days):
 
 
 def parse_card(card: Tag):
-    event_title = card.h3.a.text
-
+    event_title = card.h3.a.text.strip()
+    print(card.p)
     event_description = fetch_description(card.h3.a.attrs["href"])
-    date_tag, location_tag = card.find_all("p")
+
+    tags = card.find_all("p")
+    date_tag = tags[0]
+    location_tag = tags[1] if len(tags) > 1 else None
+
     date_time_split_index = re.search(r"\d{4}", date_tag.text).end()
     event_date = date_tag.text[:date_time_split_index].strip()
     event_time = date_tag.text[date_time_split_index:].strip()
-    event_location = location_tag.text.strip()
+    event_location = location_tag.text.strip() if location_tag is not None else None
     return {
         "title": event_title,
         "date": event_date,
@@ -100,8 +116,7 @@ def scrape_events(progress_percent_callback, save_path: str, days, max_words):
 
 # Blotter Scraping
 
-def parse_blotter(source):
-    soup = BeautifulSoup(source, features="html.parser")
+def parse_blotter(soup):
     main_content = soup.find(id='mainContent')
     date_range = main_content.find('p', class_='lead').text
 
