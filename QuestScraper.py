@@ -32,9 +32,10 @@ def main():
     time_group.add_argument(
         "-d",
         "--days",
-        help="The number of days ahead to look for events (default 7)",
+        help="The number of days ahead to look for events",
         required=False,
         widget="IntegerField",
+        gooey_options={"min": 1, "max": 14, "initial_value": 7},
     )
 
     format_group = parser.add_argument_group(
@@ -44,9 +45,11 @@ def main():
         "--max-words",
         help="The max number of words to be written to the markdown file per entry",
         widget="IntegerField",
-        gooey_options={"initial_value": 200},
+        gooey_options={"max": 10000, "initial_value": 200},
     )
     args = parser.parse_args()
+
+    print(args)
 
 
 if __name__ == "__main__":
