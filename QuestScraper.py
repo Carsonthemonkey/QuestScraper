@@ -2,13 +2,16 @@ import os
 from gooey import Gooey, GooeyParser
 from calendar_scraper import scrape_blotter, scrape_events
 from enum import Enum
+from dateutil.parser import parse as date_parse
+
 
 class Sites(Enum):
-    blotter = 'blotter'
-    events = 'events'
+    blotter = "blotter"
+    events = "events"
 
     def __str__(self):
         return self.value
+
 
 @Gooey
 def main():
@@ -21,9 +24,7 @@ def main():
         "output_dir",
         help="The directory to output the saved data to",
         widget="DirChooser",
-        gooey_options={
-            'initial_value': os.getcwd()
-        }
+        gooey_options={"initial_value": os.getcwd()},
     )
     parser.add_argument(
         "target_site",
@@ -33,7 +34,8 @@ def main():
     )
 
     time_group = parser.add_argument_group(
-        "Time Options", "Customize the dates that the scraper will look for"
+        "Time Options",
+        "Customize the dates that the scraper will look for (Only effects events data)",
     )
     time_group.add_argument(
         "-s",
@@ -66,7 +68,12 @@ def main():
     if args.target_site == Sites.blotter:
         scrape_blotter(args.output_dir, int(args.max_words))
     elif args.target_site == Sites.events:
-        scrape_events(args.output_dir, int(args.days), int(args.max_words))
+        scrape_events(
+            args.output_dir,
+            date_parse(args.start_date).date(),
+            int(args.days),
+            int(args.max_words),
+        )
 
 
 if __name__ == "__main__":

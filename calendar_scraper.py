@@ -40,13 +40,13 @@ def get_relevant_event_cards(soup, start_day: date, day_num: int):
     events = soup.find(id="event_results")
 
     cutoff_date = start_day + timedelta(days=day_num)
-    assert isinstance(cutoff_date, date)
     relevant_groups = []
     dates = events.find_all("h2")
     cards = events.find_all("div", class_="em-card-group")
     for event_date, card_group in zip(dates, cards):
         event_dt = date_parse(event_date.contents[0])
-        print(type(event_dt.date()))
+        if event_dt.date() < start_day:
+            continue
         if event_dt.date() > cutoff_date:
             break
         relevant_groups.append(card_group)
@@ -61,7 +61,6 @@ def get_relevant_event_cards(soup, start_day: date, day_num: int):
 
 def parse_card(card: Tag):
     event_title = card.h3.a.text.strip()
-    print(card.p)
     event_description = fetch_description(card.h3.a.attrs["href"])
 
     tags = card.find_all("p")
@@ -81,8 +80,8 @@ def parse_card(card: Tag):
     }
 
 
-def scrape_events(save_path: str, days, max_words):
-    cards = get_relevant_event_cards(get_page_source(EVENTS_URL), date.today(), days)
+def scrape_events(save_path: str, start_day: date, day_num: int, max_words: int):
+    cards = get_relevant_event_cards(get_page_source(EVENTS_URL), start_day, day_num)
     event_data = [parse_card(card) for card in cards]
     with open(f"{save_path}/{str(date.today())}-event-scrape.json", "w", encoding="utf-8") as f:
         f.write(json.dumps(event_data, indent=4))
@@ -169,6 +168,6 @@ def scrape_blotter(save_path: str, max_words):
                 f.write(f'"Notes: {case['notes']}"\n\n')
     
 if __name__ == "__main__":
-    scrape_events(os.getcwd(), 7,  200)
+    scrape_events(os.getcwd(),date.today(), 7,  200)
 
     # scrape_events(lambda _: _, os.getcwd(), 7, 200)
