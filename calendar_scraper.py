@@ -36,15 +36,17 @@ def fetch_description(url):
        raise AttributeError(f"page '{url}' has no description") from e
 
 
-def get_relevant_event_cards(soup, time_span_days):
+def get_relevant_event_cards(soup, start_day: date, day_num: int):
     events = soup.find(id="event_results")
 
-    cutoff_date = date.today() + timedelta(days=time_span_days)
+    cutoff_date = start_day + timedelta(days=day_num)
+    assert isinstance(cutoff_date, date)
     relevant_groups = []
     dates = events.find_all("h2")
     cards = events.find_all("div", class_="em-card-group")
     for event_date, card_group in zip(dates, cards):
         event_dt = date_parse(event_date.contents[0])
+        print(type(event_dt.date()))
         if event_dt.date() > cutoff_date:
             break
         relevant_groups.append(card_group)
@@ -80,7 +82,7 @@ def parse_card(card: Tag):
 
 
 def scrape_events(save_path: str, days, max_words):
-    cards = get_relevant_event_cards(get_page_source(EVENTS_URL), days)
+    cards = get_relevant_event_cards(get_page_source(EVENTS_URL), date.today(), days)
     event_data = []
     for i, card in enumerate(cards):
         event_data.append(parse_card(card))
@@ -169,6 +171,6 @@ def scrape_blotter(save_path: str, max_words):
                 f.write(f'"Notes: {case['notes']}"\n\n')
     
 if __name__ == "__main__":
-    scrape_blotter(os.getcwd(), 200)
+    scrape_events(os.getcwd(), 7,  200)
 
     # scrape_events(lambda _: _, os.getcwd(), 7, 200)
