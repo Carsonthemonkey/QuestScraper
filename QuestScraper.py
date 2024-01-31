@@ -64,9 +64,9 @@ def main():
     print(args)
 
     if args.target_site == Sites.blotter:
-        scrape_blotter(lambda _: None, args.output_dir, int(args.max_words))
+        scrape_blotter(args.output_dir, int(args.max_words))
     elif args.target_site == Sites.events:
-        scrape_events(lambda _: None, args.output_dir, int(args.days), int(args.max_words))
+        scrape_events(args.output_dir, int(args.days), int(args.max_words))
 
 
 if __name__ == "__main__":

@@ -79,11 +79,10 @@ def parse_card(card: Tag):
     }
 
 
-def scrape_events(progress_percent_callback, save_path: str, days, max_words):
+def scrape_events(save_path: str, days, max_words):
     cards = get_relevant_event_cards(get_page_source(EVENTS_URL), days)
     event_data = []
     for i, card in enumerate(cards):
-        progress_percent_callback(i / len(cards))
         event_data.append(parse_card(card))
     with open(f"{save_path}/{str(date.today())}-event-scrape.json", "w", encoding="utf-8") as f:
         f.write(json.dumps(event_data, indent=4))
@@ -111,7 +110,6 @@ def scrape_events(progress_percent_callback, save_path: str, days, max_words):
             f.write('\n---\n')
             prev_date = event['date']
     print(f"saved files to {os.getcwd()}")
-    progress_percent_callback(0)
 
 
 # Blotter Scraping
@@ -145,8 +143,7 @@ def parse_blotter(soup):
         })
     return (date_range, cases)
 
-def scrape_blotter(progress_percent_callback, save_path: str, max_words):
-    progress_percent_callback(0.5)
+def scrape_blotter(save_path: str, max_words):
     source = get_page_source(BLOTTER_URL)
     date_range, cases = parse_blotter(source)
     
@@ -171,9 +168,7 @@ def scrape_blotter(progress_percent_callback, save_path: str, max_words):
             else:
                 f.write(f'"Notes: {case['notes']}"\n\n')
     
-    progress_percent_callback(0)
-
 if __name__ == "__main__":
-    scrape_blotter(lambda _: _, os.getcwd(), 200)
+    scrape_blotter(os.getcwd(), 200)
 
     # scrape_events(lambda _: _, os.getcwd(), 7, 200)
