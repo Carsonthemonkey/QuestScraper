@@ -83,9 +83,7 @@ def parse_card(card: Tag):
 
 def scrape_events(save_path: str, days, max_words):
     cards = get_relevant_event_cards(get_page_source(EVENTS_URL), date.today(), days)
-    event_data = []
-    for i, card in enumerate(cards):
-        event_data.append(parse_card(card))
+    event_data = [parse_card(card) for card in cards]
     with open(f"{save_path}/{str(date.today())}-event-scrape.json", "w", encoding="utf-8") as f:
         f.write(json.dumps(event_data, indent=4))
 
