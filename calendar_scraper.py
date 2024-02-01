@@ -12,27 +12,41 @@ EVENTS_URL = "https://events.reed.edu/calendar"
 BLOTTER_URL = 'https://www.reed.edu/community_safety/blotters/the-blotter.html'
 
 def get_page_source(url):
+    """
+    Retrieves the page source of the given URL.
+
+    Args:
+        url (str): The URL of the page to retrieve.
+
+    Returns:
+        str: The page source as a string.
+    """
     response = requests.get(url, timeout=15)
     source = response.text
-    return source
+    return BeautifulSoup(source, features='html.parser')
 
 
 def fetch_description(url):
-    html = get_page_source(url)
-    soup = BeautifulSoup(html, features="html.parser")
-    return soup.find(class_="em-about_description").p.text.strip()
+    soup = get_page_source(url)
+    try:
+        description = soup.find(class_="em-about_description").get_text().strip() 
+        return description
+    except AttributeError as e:
+    #    print(soup.find(class_="em-about_description").p.prettify())
+       raise AttributeError(f"page '{url}' has no description") from e
 
 
-def get_relevant_event_cards(html: str, time_span_days):
-    soup = BeautifulSoup(html, features="html.parser")
+def get_relevant_event_cards(soup, start_day: date, day_num: int):
     events = soup.find(id="event_results")
 
-    cutoff_date = date.today() + timedelta(days=time_span_days)
+    cutoff_date = start_day + timedelta(days=day_num)
     relevant_groups = []
     dates = events.find_all("h2")
     cards = events.find_all("div", class_="em-card-group")
     for event_date, card_group in zip(dates, cards):
         event_dt = date_parse(event_date.contents[0])
+        if event_dt.date() < start_day:
+            continue
         if event_dt.date() > cutoff_date:
             break
         relevant_groups.append(card_group)
@@ -46,14 +60,17 @@ def get_relevant_event_cards(html: str, time_span_days):
 
 
 def parse_card(card: Tag):
-    event_title = card.h3.a.text
-
+    event_title = card.h3.a.text.strip()
     event_description = fetch_description(card.h3.a.attrs["href"])
-    date_tag, location_tag = card.find_all("p")
+
+    tags = card.find_all("p")
+    date_tag = tags[0]
+    location_tag = tags[1] if len(tags) > 1 else None
+
     date_time_split_index = re.search(r"\d{4}", date_tag.text).end()
     event_date = date_tag.text[:date_time_split_index].strip()
     event_time = date_tag.text[date_time_split_index:].strip()
-    event_location = location_tag.text.strip()
+    event_location = location_tag.text.strip() if location_tag is not None else None
     return {
         "title": event_title,
         "date": event_date,
@@ -63,12 +80,9 @@ def parse_card(card: Tag):
     }
 
 
-def scrape_events(progress_percent_callback, save_path: str, days, max_words):
-    cards = get_relevant_event_cards(get_page_source(EVENTS_URL), days)
-    event_data = []
-    for i, card in enumerate(cards):
-        progress_percent_callback(i / len(cards))
-        event_data.append(parse_card(card))
+def scrape_events(save_path: str, start_day: date, day_num: int, max_words: int):
+    cards = get_relevant_event_cards(get_page_source(EVENTS_URL), start_day, day_num)
+    event_data = [parse_card(card) for card in cards]
     with open(f"{save_path}/{str(date.today())}-event-scrape.json", "w", encoding="utf-8") as f:
         f.write(json.dumps(event_data, indent=4))
 
@@ -95,13 +109,11 @@ def scrape_events(progress_percent_callback, save_path: str, days, max_words):
             f.write('\n---\n')
             prev_date = event['date']
     print(f"saved files to {os.getcwd()}")
-    progress_percent_callback(0)
 
 
 # Blotter Scraping
 
-def parse_blotter(source):
-    soup = BeautifulSoup(source, features="html.parser")
+def parse_blotter(soup):
     main_content = soup.find(id='mainContent')
     date_range = main_content.find('p', class_='lead').text
 
@@ -130,8 +142,7 @@ def parse_blotter(source):
         })
     return (date_range, cases)
 
-def scrape_blotter(progress_percent_callback, save_path: str, max_words):
-    progress_percent_callback(0.5)
+def scrape_blotter(save_path: str, max_words):
     source = get_page_source(BLOTTER_URL)
     date_range, cases = parse_blotter(source)
     
@@ -156,9 +167,7 @@ def scrape_blotter(progress_percent_callback, save_path: str, max_words):
             else:
                 f.write(f'"Notes: {case['notes']}"\n\n')
     
-    progress_percent_callback(0)
-
 if __name__ == "__main__":
-    scrape_blotter(lambda _: _, os.getcwd(), 200)
+    scrape_events(os.getcwd(),date.today(), 7,  200)
 
     # scrape_events(lambda _: _, os.getcwd(), 7, 200)
