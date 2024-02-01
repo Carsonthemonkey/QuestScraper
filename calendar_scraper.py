@@ -163,9 +163,9 @@ def scrape_blotter(save_path: str, max_words):
                         break
                     f.write(sentence)
                     word_num += len(sentence)
-                f.write('"\n\n')
             else:
-                f.write(f'"Notes: {case['notes']}"\n\n')
+                f.write(case['notes'])
+            f.write('\n\n')
     
 if __name__ == "__main__":
     scrape_events(os.getcwd(),date.today(), 7,  200)
