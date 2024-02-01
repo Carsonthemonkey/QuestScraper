@@ -73,7 +73,7 @@ def parse_card(card: Tag):
     event_location = location_tag.text.strip() if location_tag is not None else None
     return {
         "title": event_title,
-        "date": event_date,
+        "date": str(date_parse(event_date)),
         "time": event_time,
         "location": event_location,
         "description": event_description,
@@ -90,7 +90,7 @@ def scrape_events(save_path: str, start_day: date, day_num: int, max_words: int)
         prev_date = None
         written_descriptions = []
         for event in event_data:
-            f.write(f"# {event['date']}" if event['date'] != prev_date else "")
+            f.write(f"# {date_parse(event['date']).strftime('%A, %B %d, %Y')}" if event['date'] != prev_date else "")
             f.write('\n')
             f.write(f"**{event['title']} ({event['time']} @ {event['location']})**\n\n")
             if event['description'] not in written_descriptions:
