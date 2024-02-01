@@ -152,9 +152,10 @@ def scrape_blotter(save_path: str, max_words):
     with open(f'{save_path}/{str(date.today())}-blotter-readable.md', 'w', encoding='utf-8') as f:
         f.write(f'## {date_range}\n\n')
         for case in cases:
-            readable_date = datetime.strptime(case['date'], '%Y-%m-%d %H:%M').strftime('%A, %B %d, %Y')
+            case_datetime = datetime.strptime(case['date'], '%Y-%m-%d %H:%M')
+            readable_date = case_datetime.strftime('%A, %B %d, %Y')
             f.write(f'## {readable_date} \n\n')
-            f.write(f'**{case['case_number']}; {case['description']}; {case['location']}**\n\n')
+            f.write(f'**{case['case_number']}; {case_datetime.strftime('%H:%M')}; {case['description']}; {case['location']}**\n\n')
             if len(case['notes']) > max_words:
                 word_num = 0
                 f.write('"Notes: ')
