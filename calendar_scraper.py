@@ -1,6 +1,6 @@
 import os
+import warnings
 from datetime import date, timedelta, datetime
-from tqdm import tqdm
 import re
 import requests
 from dateutil.parser import parse as date_parse
@@ -115,31 +115,37 @@ def scrape_events(save_path: str, start_day: date, day_num: int, max_words: int)
 
 def parse_blotter(soup):
     main_content = soup.find(id='mainContent')
-    date_range = main_content.find('p', class_='lead').text
+    assert main_content is not None, "Could not find main content on blotter page"
+
+    try:
+        date_range = main_content.find('p', class_='lead').text
+    except AttributeError:
+        warnings.warn('No date range found for blotter page', RuntimeWarning)
 
     paragraphs = main_content.find_all('p')[8:]
-    paragraphs = list(filter(lambda x: 'VOID REPORT' not in x.text, paragraphs))
-    # for p in paragraphs:
-    #     print(p.prettify())
+    def filter_paragraphs(paragraph):
+        return len(paragraph.find_all('span')) >= 2 and 'VOID REPORT' not in paragraph.text
+    
+    paragraphs = list(filter(filter_paragraphs, paragraphs))
+
     cases = []
     for i in range(0, len(paragraphs), 2):
         spans = paragraphs[i].find_all('span')
         if not spans:
-            break
-        num = spans[1].text.strip()
-        case_date = spans[3].text.strip()
-        time = spans[5].text.strip()
-        description = spans[7].text.strip()
-        location = spans[9].text.strip()
-
-        notes = paragraphs[i + 1].find_all('span')[1].text.strip()
-        cases.append({
-            'case_number': num,
-            'date': str(date_parse(case_date))[:11] + time, # messy but whatever
-            'description': description,
-            'location': location,
-            'notes': notes
-        })
+            warnings.warn("Blotter paragraph seems to be empty", RuntimeWarning)
+            continue
+        case = {}
+        try:
+            case['case_number'] = spans[1].text.strip()
+            case_date = spans[3].text.strip()
+            time = spans[5].text.strip()
+            case['date'] = str(date_parse(case_date))[:11] + time # TODO: make this less messy
+            case['description'] = spans[7].text.strip()
+            case['location'] = spans[9].text.strip()
+            case['notes'] = paragraphs[i + 1].find_all('span')[1].text.strip()
+        except (AttributeError, KeyError) as e:
+            warnings.warn(f"Missing case data for case. Data collected:\n {case}\n Error: {e}", RuntimeWarning)
+        cases.append(case)
     return (date_range, cases)
 
 def scrape_blotter(save_path: str, max_words):
@@ -169,6 +175,6 @@ def scrape_blotter(save_path: str, max_words):
             f.write('\n\n')
     
 if __name__ == "__main__":
-    scrape_events(os.getcwd(),date.today(), 7,  200)
-
+    # scrape_events(os.getcwd(),date.today(), 7,  200)
+    scrape_blotter(os.getcwd(), 200)
     # scrape_events(lambda _: _, os.getcwd(), 7, 200)
