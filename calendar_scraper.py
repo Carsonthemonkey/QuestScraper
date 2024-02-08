@@ -101,7 +101,12 @@ def parse_card(card: Tag):
 
 def scrape_events(save_path: str, start_day: date, day_num: int, max_words: int):
     cards = get_relevant_event_cards(get_page_source(EVENT_CALENDAR_URL), start_day, day_num)
-    event_data = [parse_card(card) for card in cards]
+
+    event_data = []
+    for i, card in enumerate(cards):
+        event_data.append(parse_card(card))
+        print(f'progress: {int(100 * i / len(cards))}%')
+
     save_json_data(event_data, save_path, f'{str(date.today())}-event-scrape')
 
     with open(f"{save_path}/{str(date.today())}-events-readable.md", "w", encoding="utf-8") as f:

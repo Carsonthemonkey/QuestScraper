@@ -13,7 +13,8 @@ class Sites(Enum):
         return self.value
 
 
-@Gooey
+@Gooey(progress_regex=r"^progress: (-?\d+)%$",
+       hide_progress_msg=True)
 def main():
     parser = GooeyParser(
         prog="QuestScraper",
