@@ -25,14 +25,17 @@ def get_page_source(url):
     source = response.text
     return BeautifulSoup(source, features='html.parser')
 
-
-def fetch_description(url):
+def save_json_data(json_data: dict, save_path: str, filename: str):
+    """Saves the scrape data in JSON format"""
+    with open(f'{save_path}/{filename}.json', 'w', encoding='utf-8') as f:
+        f.write(json.dumps(json_data, indent=4))
+    
+def fetch_event_description(url):
     soup = get_page_source(url)
     try:
         description = soup.find(class_="em-about_description").get_text().strip() 
         return description
     except AttributeError as e:
-    #    print(soup.find(class_="em-about_description").p.prettify())
        raise AttributeError(f"page '{url}' has no description") from e
 
 
@@ -61,7 +64,7 @@ def get_relevant_event_cards(soup, start_day: date, day_num: int):
 
 def parse_card(card: Tag):
     event_title = card.h3.a.text.strip()
-    event_description = fetch_description(card.h3.a.attrs["href"])
+    event_description = fetch_event_description(card.h3.a.attrs["href"])
 
     tags = card.find_all("p")
     date_tag = tags[0]
@@ -83,8 +86,7 @@ def parse_card(card: Tag):
 def scrape_events(save_path: str, start_day: date, day_num: int, max_words: int):
     cards = get_relevant_event_cards(get_page_source(EVENTS_URL), start_day, day_num)
     event_data = [parse_card(card) for card in cards]
-    with open(f"{save_path}/{str(date.today())}-event-scrape.json", "w", encoding="utf-8") as f:
-        f.write(json.dumps(event_data, indent=4))
+    save_json_data(event_data, save_path, f'{str(date.today())}-event-scrape')
 
     with open(f"{save_path}/{str(date.today())}-events-readable.md", "w", encoding="utf-8") as f:
         prev_date = None
@@ -116,7 +118,6 @@ def scrape_events(save_path: str, start_day: date, day_num: int, max_words: int)
 def parse_blotter(soup):
     main_content = soup.find(id='mainContent')
     assert main_content is not None, "Could not find main content on blotter page"
-
     try:
         date_range = main_content.find('p', class_='lead').text
     except AttributeError:
@@ -152,8 +153,7 @@ def scrape_blotter(save_path: str, max_words):
     source = get_page_source(BLOTTER_URL)
     date_range, cases = parse_blotter(source)
     
-    with open(f'{save_path}/{str(date.today())}-blotter-scrape.json', 'w', encoding='utf-8') as f:
-        f.write(json.dumps(cases, indent=4))
+    save_json_data(cases, save_path, f'{str(date.today())}-blotter-scrape')
     
     with open(f'{save_path}/{str(date.today())}-blotter-readable.md', 'w', encoding='utf-8') as f:
         f.write(f'## {date_range}\n\n')
