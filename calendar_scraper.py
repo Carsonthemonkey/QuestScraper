@@ -37,7 +37,7 @@ def fetch_event_description(url):
         description = soup.find(class_="em-about_description").get_text().strip() 
         return description
     except AttributeError as e:
-       raise AttributeError(f"page '{url}' has no description") from e
+       warnings.warn(f"page '{url}' has no description")
 
 
 def get_relevant_event_cards(soup, start_day: date, day_num: int):
@@ -182,7 +182,7 @@ def scrape_blotter(save_path: str, max_words):
             case_datetime = datetime.strptime(case['date'], '%Y-%m-%d %H:%M')
             readable_date = case_datetime.strftime('%A, %B %d, %Y')
             f.write(f'## {readable_date} \n\n')
-            f.write(f'**{case['case_number']}; {case_datetime.strftime('%H:%M')}; {case['description']}; {case['location']}**\n\n')
+            f.write(f'**{case['case_number']}; {case['description']}; {case['location']}; {case_datetime.strftime('%H:%M')};**\n\n')
             if len(case['notes']) > max_words:
                 word_num = 0
                 f.write('"Notes: ')
