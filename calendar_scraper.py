@@ -8,7 +8,8 @@ from bs4 import BeautifulSoup
 from bs4.element import Tag
 import json
 
-EVENTS_URL = "https://events.reed.edu/calendar"
+BASE_EVENTS_URL = 'https://events.reed.edu/'
+EVENT_CALENDAR_URL = BASE_EVENTS_URL + "calendar"
 BLOTTER_URL = 'https://www.reed.edu/community_safety/blotters/the-blotter.html'
 
 def get_page_source(url):
@@ -43,23 +44,38 @@ def get_relevant_event_cards(soup, start_day: date, day_num: int):
     events = soup.find(id="event_results")
 
     cutoff_date = start_day + timedelta(days=day_num)
-    relevant_groups = []
+    # relevant_groups = []
     dates = events.find_all("h2")
-    cards = events.find_all("div", class_="em-card-group")
-    for event_date, card_group in zip(dates, cards):
+    card_groups = events.find_all("div", class_="em-card-group")
+    cards = []
+    for event_date, card_group in zip(dates, card_groups):
         event_dt = date_parse(event_date.contents[0])
         if event_dt.date() < start_day:
             continue
         if event_dt.date() > cutoff_date:
-            break
-        relevant_groups.append(card_group)
+            return cards
+        # relevant_groups.append(card_group)
+        full_cards = card_group.find_all(class_='em-card')
+        cards.extend([card.contents[3] for card in full_cards]) #Why is it 3 again? seems unusual TODO: make this more readable and robust
+    
+    # If loop concludes before returning, we did not hit the date limit. We need to collect cards on the next page
+    try:
+        next_page_link = soup.find(attrs={'aria-label': 'Next page'}, class_='em-pagination-item').attrs['href']
+    except AttributeError:
+        warnings.warn("Could not find next page of events. May be missing", RuntimeWarning)
+        return cards
+    
+    print('fetching next events page')
+    next_page_src = get_page_source(BASE_EVENTS_URL + next_page_link)
+    cards.extend(get_relevant_event_cards(next_page_src, start_day, day_num))
+    return cards
+
 
     # Parse each cards in the relavent groups
-    cards = []
-    for group in relevant_groups:
-        full_cards = group.find_all(class_="em-card")
-        cards.extend([card.contents[3] for card in full_cards])
-    return cards
+    # for group in relevant_groups:
+    #     full_cards = group.find_all(class_="em-card")
+    #     cards.extend([card.contents[3] for card in full_cards])
+    # return cards
 
 
 def parse_card(card: Tag):
@@ -84,7 +100,7 @@ def parse_card(card: Tag):
 
 
 def scrape_events(save_path: str, start_day: date, day_num: int, max_words: int):
-    cards = get_relevant_event_cards(get_page_source(EVENTS_URL), start_day, day_num)
+    cards = get_relevant_event_cards(get_page_source(EVENT_CALENDAR_URL), start_day, day_num)
     event_data = [parse_card(card) for card in cards]
     save_json_data(event_data, save_path, f'{str(date.today())}-event-scrape')
 
