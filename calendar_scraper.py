@@ -185,7 +185,6 @@ def scrape_blotter(save_path: str, max_words):
             f.write(f'**{case['case_number']}; {case['description']}; {case['location']}; {case_datetime.strftime('%H:%M')};**\n\n')
             if len(case['notes']) > max_words:
                 word_num = 0
-                f.write('"Notes: ')
                 for sentence in case['notes'].split('.'):
                     if word_num > max_words:
                         break
