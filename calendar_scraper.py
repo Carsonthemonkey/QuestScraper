@@ -188,7 +188,7 @@ def scrape_blotter(save_path: str, max_words):
                 for sentence in case['notes'].split('.'):
                     if word_num > max_words:
                         break
-                    f.write(sentence)
+                    f.write(sentence + '.')
                     word_num += len(sentence)
             else:
                 f.write(case['notes'])
