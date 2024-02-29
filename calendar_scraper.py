@@ -146,7 +146,7 @@ def parse_blotter(soup):
 
     paragraphs = main_content.find_all('p')[8:]
     def filter_paragraphs(paragraph):
-        return len(paragraph.find_all('span')) >= 2 and 'VOID REPORT' not in paragraph.text
+        return len(paragraph.find_all('span')) >= 2 and 'VOID' not in paragraph.text
     
     paragraphs = list(filter(filter_paragraphs, paragraphs))
 
@@ -165,7 +165,7 @@ def parse_blotter(soup):
             case['description'] = spans[7].text.strip()
             case['location'] = spans[9].text.strip()
             case['notes'] = paragraphs[i + 1].find_all('span')[1].text.strip()
-        except (AttributeError, KeyError) as e:
+        except Exception as e:
             warnings.warn(f"Missing case data for case. Data collected:\n {case}\n Error: {e}", RuntimeWarning)
         cases.append(case)
     return (date_range, cases)
