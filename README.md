@@ -1,6 +1,6 @@
 # QuestScraper
 
-This an application that scrapes Reed college's [blotter](https://www.reed.edu/community_safety/blotters/the-blotter.html) and [Event Calendar](https://events.reed.edu/calendar) for the Reed Quest. It includes a simple GUI and bundled application so that it is easy to use without any programming knowledge.
+This is an application that scrapes Reed college's [blotter](https://www.reed.edu/community_safety/blotters/the-blotter.html) and [Event Calendar](https://events.reed.edu/calendar) for the Reed Quest. It includes a simple GUI and bundled application so that it is easy to use without any programming knowledge.
 
 # Installing
 
